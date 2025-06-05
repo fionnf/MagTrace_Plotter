@@ -516,6 +516,16 @@ class PlotterUI(QMainWindow):
         self.enable_y4_checkbox = QCheckBox("Enable Fourth Y-axis")
         self.enable_y4_checkbox.stateChanged.connect(self.toggle_fourth_y_axis)
 
+        # --- Add Y-axis min/max QLineEdit widgets ---
+        self.y1_min_input = QLineEdit()
+        self.y1_max_input = QLineEdit()
+        self.y2_min_input = QLineEdit()
+        self.y2_max_input = QLineEdit()
+        self.y3_min_input = QLineEdit()
+        self.y3_max_input = QLineEdit()
+        self.y4_min_input = QLineEdit()
+        self.y4_max_input = QLineEdit()
+
         # --- Resistance plotting controls ---
         self.enable_resistance_checkbox = QCheckBox("Calculate and Plot Resistance")
         self.enable_resistance_checkbox.stateChanged.connect(self.toggle_resistance_controls)
@@ -569,29 +579,61 @@ class PlotterUI(QMainWindow):
         layout.addWidget(QLabel("X Axis:"))
         layout.addWidget(self.x_axis_combo)
         layout.addWidget(self.x_label_input)
+
         layout.addWidget(QLabel("Y1 Axis:"))
         layout.addWidget(self.y1_axis_combo)
         layout.addWidget(self.y1_label_input)
         layout.addWidget(self.y1_abs_checkbox)
         layout.addWidget(self.y1_deriv_checkbox)
+        # Add Y1 min/max inputs in a horizontal layout
+        y1_range_layout = QHBoxLayout()
+        y1_range_layout.addWidget(QLabel("Y1 Min:"))
+        y1_range_layout.addWidget(self.y1_min_input)
+        y1_range_layout.addWidget(QLabel("Max:"))
+        y1_range_layout.addWidget(self.y1_max_input)
+        layout.addLayout(y1_range_layout)
         layout.addWidget(self.enable_y2_checkbox)
+
         layout.addWidget(QLabel("Y2 Axis:"))
         layout.addWidget(self.y2_axis_combo)
         layout.addWidget(self.y2_label_input)
         layout.addWidget(self.y2_abs_checkbox)
         layout.addWidget(self.y2_deriv_checkbox)
+        # Add Y2 min/max inputs in a horizontal layout
+        y2_range_layout = QHBoxLayout()
+        y2_range_layout.addWidget(QLabel("Y2 Min:"))
+        y2_range_layout.addWidget(self.y2_min_input)
+        y2_range_layout.addWidget(QLabel("Max:"))
+        y2_range_layout.addWidget(self.y2_max_input)
+        layout.addLayout(y2_range_layout)
         layout.addWidget(self.enable_y3_checkbox)
+
         layout.addWidget(QLabel("Y3 Axis:"))
         layout.addWidget(self.y3_axis_combo)
         layout.addWidget(self.y3_label_input)
         layout.addWidget(self.y3_abs_checkbox)
         layout.addWidget(self.y3_deriv_checkbox)
+        # Add Y3 min/max inputs in a horizontal layout
+        y3_range_layout = QHBoxLayout()
+        y3_range_layout.addWidget(QLabel("Y3 Min:"))
+        y3_range_layout.addWidget(self.y3_min_input)
+        y3_range_layout.addWidget(QLabel("Max:"))
+        y3_range_layout.addWidget(self.y3_max_input)
+        layout.addLayout(y3_range_layout)
         layout.addWidget(self.enable_y4_checkbox)
+
         layout.addWidget(QLabel("Y4 Axis:"))
         layout.addWidget(self.y4_axis_combo)
         layout.addWidget(self.y4_label_input)
         layout.addWidget(self.y4_abs_checkbox)
         layout.addWidget(self.y4_deriv_checkbox)
+        # Add Y4 min/max inputs in a horizontal layout
+        y4_range_layout = QHBoxLayout()
+        y4_range_layout.addWidget(QLabel("Y4 Min:"))
+        y4_range_layout.addWidget(self.y4_min_input)
+        y4_range_layout.addWidget(QLabel("Max:"))
+        y4_range_layout.addWidget(self.y4_max_input)
+        layout.addLayout(y4_range_layout)
         layout.addWidget(QLabel("X range:"))
         layout.addWidget(self.x_min_input)
         layout.addWidget(self.x_max_input)
@@ -722,7 +764,6 @@ class PlotterUI(QMainWindow):
 
     def plot_selected(self):
         if self.df is not None:
-            # Guard to not try plotting both custom Y2-Y4 and resistance
             if self.enable_resistance_checkbox.isChecked():
                 self.y2_axis_combo.setEnabled(False)
                 self.y2_label_input.setEnabled(False)
@@ -758,9 +799,15 @@ class PlotterUI(QMainWindow):
             x_min = float(self.x_min_input.text()) if self.x_min_input.text() else None
             x_max = float(self.x_max_input.text()) if self.x_max_input.text() else None
 
+            # --- Determine how many extra Y axes are in use (Y2, Y3, Y4) ---
+            y_axes_used = sum(bool(c) for c in [y2_col, y3_col, y4_col])
+
+            # --- Fixed canvas and figure size for consistent aspect ratio ---
+            self.canvas.setFixedSize(800, 600)
+            self.figure.set_size_inches(8, 6)
+
             self.figure.clear()
             self.figure.set_facecolor('white')
-            self.canvas.setFixedSize(800, 600)
             base_fontsize = max(int(self.figure.get_size_inches()[0] * self.figure.dpi / 100), 10)
             ax1 = self.figure.add_subplot(111)
             ax2 = None
@@ -798,10 +845,21 @@ class PlotterUI(QMainWindow):
                     marker='o',
                     markersize=marker_size,
                 )
-                ax1.set_ylabel(self.y1_label_input.text() or y1_col, color='tab:blue')
-                ax1.tick_params(axis='both', labelsize=base_fontsize)
-                ax1.xaxis.label.set_size(base_fontsize + 2)
+                ax1.set_ylabel(self.y1_label_input.text() or y1_col)
+                # --- Color styling for Y1 axis ---
+                ax1.spines["left"].set_color('tab:blue')
+                ax1.tick_params(axis='y', colors='tab:blue', labelsize=base_fontsize)
+                ax1.yaxis.label.set_color('tab:blue')
                 ax1.yaxis.label.set_size(base_fontsize + 2)
+                ax1.tick_params(axis='x', labelsize=base_fontsize)
+                ax1.xaxis.label.set_size(base_fontsize + 2)
+                # Apply Y1 min/max if set
+                try:
+                    y1_min = float(self.y1_min_input.text())
+                    y1_max = float(self.y1_max_input.text())
+                    ax1.set_ylim(y1_min, y1_max)
+                except ValueError:
+                    pass
 
             legend_axes = [ax1]
             axes_labels = [ax1.get_ylabel()]
@@ -830,12 +888,26 @@ class PlotterUI(QMainWindow):
                     marker='o',
                     markersize=marker_size,
                 )
-                ax2.set_ylabel("Resistance (µΩ)", color='tab:red')
+                ax2.set_ylabel("Resistance (µΩ)")
                 ax2.ticklabel_format(style='plain', axis='y')
-                ax2.tick_params(axis='y', labelcolor='tab:red')
-                ax2.tick_params(axis='both', labelsize=base_fontsize)
-                ax2.xaxis.label.set_size(base_fontsize + 2)
+                # --- Color styling for resistance axis (use tab:orange for Y2) ---
+                ax2.spines["right"].set_color('tab:orange')
+                ax2.tick_params(axis='y', colors='tab:orange', labelsize=base_fontsize)
+                ax2.yaxis.label.set_color('tab:orange')
                 ax2.yaxis.label.set_size(base_fontsize + 2)
+                # Default Y2 label placement for resistance (vertical)
+                ax2.yaxis.label.set_rotation(90)
+                ax2.yaxis.labelpad = 15
+                ax2.yaxis.label.set_position((1.12, 0.5))
+                ax2.tick_params(axis='x', labelsize=base_fontsize)
+                ax2.xaxis.label.set_size(base_fontsize + 2)
+                # Apply Y2 min/max if set
+                try:
+                    y2_min = float(self.y2_min_input.text())
+                    y2_max = float(self.y2_max_input.text())
+                    ax2.set_ylim(y2_min, y2_max)
+                except ValueError:
+                    pass
                 legend_axes.append(ax2)
                 axes_labels.append(ax2.get_ylabel())
                 # Display resistance at 100 A in UI
@@ -860,43 +932,52 @@ class PlotterUI(QMainWindow):
                         x_data,
                         y2_data,
                         label=self.y2_legend_input.text() or y2_col,
-                        color='tab:red',
+                        color='tab:orange',
                         linewidth=line_width,
                         alpha=0.9,
                         marker='o',
                         markersize=marker_size,
                     )
-                    ax2.set_ylabel(self.y2_label_input.text() or y2_col, color='tab:red')
-                    ax2.tick_params(axis='both', labelsize=base_fontsize)
-                    ax2.xaxis.label.set_size(base_fontsize + 2)
+                    ax2.set_ylabel(self.y2_label_input.text() or y2_col)
+                    # --- Color styling for Y2 axis ---
+                    ax2.spines["right"].set_color('tab:orange')
+                    ax2.tick_params(axis='y', colors='tab:orange', labelsize=base_fontsize)
+                    ax2.yaxis.label.set_color('tab:orange')
                     ax2.yaxis.label.set_size(base_fontsize + 2)
+                    # --- Y2 label positioning logic based on number of axes ---
+                    if y_axes_used >= 3:
+                        ax2.yaxis.label.set_rotation(45)
+                        ax2.yaxis.labelpad = 10
+                        ax2.yaxis.label.set_verticalalignment('bottom')
+                        ax2.yaxis.label.set_horizontalalignment('left')
+                        ax2.yaxis.label.set_position((1.12, 1.05))
+                    else:
+                        ax2.yaxis.label.set_rotation(90)
+                        ax2.yaxis.labelpad = 15
+                        ax2.yaxis.label.set_position((1.12, 0.5))
+                    ax2.tick_params(axis='x', labelsize=base_fontsize)
+                    ax2.xaxis.label.set_size(base_fontsize + 2)
+                    # Apply Y2 min/max if set
+                    try:
+                        y2_min = float(self.y2_min_input.text())
+                        y2_max = float(self.y2_max_input.text())
+                        ax2.set_ylim(y2_min, y2_max)
+                    except ValueError:
+                        pass
                     legend_axes.append(ax2)
                     axes_labels.append(ax2.get_ylabel())
                 # Plot Y3 if enabled
                 if y3_col:
-                    if not ax2:
-                        ax2 = ax1.twinx()
-                        ax2.set_facecolor('#f9f9f9')
-                        legend_axes.append(ax2)
-                        axes_labels.append(ax2.get_ylabel())
-                    # Create ax3, offset its spine for visual clarity
-                    ax3 = ax1.figure.add_axes(ax1.get_position(), frameon=True, sharex=ax1)
+                    # Y3 always uses twinx and positions outward
+                    ax3 = ax1.twinx()
                     ax3.set_facecolor('#f9f9f9')
-                    ax3.yaxis.set_label_position('right')
-                    ax3.yaxis.set_ticks_position('right')
-                    ax3.spines['right'].set_position(('axes', 1.15))
-                    ax3.set_frame_on(True)
-                    ax3.spines['right'].set_visible(True)
-                    ax3.spines['left'].set_visible(False)
-                    ax3.spines['top'].set_visible(False)
-                    ax3.spines['bottom'].set_visible(False)
-                    ax3.patch.set_alpha(0)
+                    ax3.spines["right"].set_position(("outward", 60))
                     y3_data = self.df[y3_col][mask]
                     if self.y3_abs_checkbox.isChecked():
                         y3_data = y3_data.abs()
                     if self.y3_deriv_checkbox.isChecked():
                         y3_data = y3_data.diff() / x_data.diff()
-                    line3 = ax3.plot(
+                    ax3.plot(
                         x_data,
                         y3_data,
                         label=self.y3_legend_input.text() or y3_col,
@@ -906,60 +987,48 @@ class PlotterUI(QMainWindow):
                         marker='o',
                         markersize=marker_size,
                     )
-                    ax3.set_ylabel(self.y3_label_input.text() or y3_col, color='tab:green')
-                    # Color-specific styling for ax3 (tab:green)
-                    color = 'tab:green'
-                    ax3.spines["right"].set_color(color)
-                    ax3.tick_params(axis='y', colors=color, labelsize=base_fontsize)
-                    ax3.yaxis.label.set_color(color)
+                    ax3.set_ylabel(self.y3_label_input.text() or y3_col)
+                    # --- Color styling for Y3 axis ---
+                    ax3.spines["right"].set_color('tab:green')
+                    ax3.tick_params(axis='y', colors='tab:green', labelsize=base_fontsize)
+                    ax3.yaxis.label.set_color('tab:green')
                     ax3.yaxis.label.set_size(base_fontsize + 2)
+                    # --- Y3 label positioning logic based on number of axes ---
+                    ax3.yaxis.set_label_position("right")
+                    ax3.yaxis.set_offset_position("right")
+                    if y_axes_used >= 3:
+                        ax3.yaxis.label.set_rotation(45)
+                        ax3.yaxis.labelpad = 10
+                        ax3.yaxis.label.set_verticalalignment('bottom')
+                        ax3.yaxis.label.set_horizontalalignment('left')
+                        ax3.yaxis.label.set_position((1.22, 1.05))
+                    else:
+                        ax3.yaxis.label.set_rotation(45)
+                        ax3.yaxis.labelpad = 10
+                        ax3.yaxis.label.set_verticalalignment('bottom')
+                        ax3.yaxis.label.set_horizontalalignment('left')
+                        ax3.yaxis.label.set_position((1.22, 1.05))
+                    # Apply Y3 min/max if set
+                    try:
+                        y3_min = float(self.y3_min_input.text())
+                        y3_max = float(self.y3_max_input.text())
+                        ax3.set_ylim(y3_min, y3_max)
+                    except ValueError:
+                        pass
                     legend_axes.append(ax3)
                     axes_labels.append(ax3.get_ylabel())
                 # Plot Y4 if enabled
                 if y4_col:
-                    if not ax2:
-                        ax2 = ax1.twinx()
-                        ax2.set_facecolor('#f9f9f9')
-                        legend_axes.append(ax2)
-                        axes_labels.append(ax2.get_ylabel())
-                    if not ax3:
-                        ax3 = ax1.figure.add_axes(ax1.get_position(), frameon=True, sharex=ax1)
-                        ax3.set_facecolor('#f9f9f9')
-                        ax3.yaxis.set_label_position('right')
-                        ax3.yaxis.set_ticks_position('right')
-                        ax3.spines['right'].set_position(('axes', 1.15))
-                        ax3.set_frame_on(True)
-                        ax3.spines['right'].set_visible(True)
-                        ax3.spines['left'].set_visible(False)
-                        ax3.spines['top'].set_visible(False)
-                        ax3.spines['bottom'].set_visible(False)
-                        ax3.patch.set_alpha(0)
-                        # Color-specific styling for ax3 (tab:green)
-                        color = 'tab:green'
-                        ax3.spines["right"].set_color(color)
-                        ax3.tick_params(axis='y', colors=color, labelsize=base_fontsize)
-                        ax3.yaxis.label.set_color(color)
-                        ax3.yaxis.label.set_size(base_fontsize + 2)
-                        legend_axes.append(ax3)
-                        axes_labels.append(ax3.get_ylabel())
-                    # Create ax4, offset its spine further to avoid overlap
-                    ax4 = ax1.figure.add_axes(ax1.get_position(), frameon=True, sharex=ax1)
+                    # Y4 always uses twinx and positions further outward
+                    ax4 = ax1.twinx()
                     ax4.set_facecolor('#f9f9f9')
-                    ax4.yaxis.set_label_position('right')
-                    ax4.yaxis.set_ticks_position('right')
-                    ax4.spines['right'].set_position(('axes', 1.3))
-                    ax4.set_frame_on(True)
-                    ax4.spines['right'].set_visible(True)
-                    ax4.spines['left'].set_visible(False)
-                    ax4.spines['top'].set_visible(False)
-                    ax4.spines['bottom'].set_visible(False)
-                    ax4.patch.set_alpha(0)
+                    ax4.spines["right"].set_position(("outward", 120))
                     y4_data = self.df[y4_col][mask]
                     if self.y4_abs_checkbox.isChecked():
                         y4_data = y4_data.abs()
                     if self.y4_deriv_checkbox.isChecked():
                         y4_data = y4_data.diff() / x_data.diff()
-                    line4 = ax4.plot(
+                    ax4.plot(
                         x_data,
                         y4_data,
                         label=self.y4_legend_input.text() or y4_col,
@@ -969,25 +1038,44 @@ class PlotterUI(QMainWindow):
                         marker='o',
                         markersize=marker_size,
                     )
-                    ax4.set_ylabel(self.y4_label_input.text() or y4_col, color='tab:purple')
-                    # Color-specific styling for ax4 (tab:purple)
-                    color = 'tab:purple'
-                    ax4.spines["right"].set_color(color)
-                    ax4.tick_params(axis='y', colors=color, labelsize=base_fontsize)
-                    ax4.yaxis.label.set_color(color)
+                    ax4.set_ylabel(self.y4_label_input.text() or y4_col)
+                    # --- Color styling for Y4 axis ---
+                    ax4.spines["right"].set_color('tab:purple')
+                    ax4.tick_params(axis='y', colors='tab:purple', labelsize=base_fontsize)
+                    ax4.yaxis.label.set_color('tab:purple')
                     ax4.yaxis.label.set_size(base_fontsize + 2)
+                    # --- Y4 label positioning logic based on number of axes ---
+                    ax4.yaxis.set_label_position("right")
+                    ax4.yaxis.set_offset_position("right")
+                    if y_axes_used >= 3:
+                        ax4.yaxis.label.set_rotation(45)
+                        ax4.yaxis.labelpad = 10
+                        ax4.yaxis.label.set_verticalalignment('bottom')
+                        ax4.yaxis.label.set_horizontalalignment('left')
+                        ax4.yaxis.label.set_position((1.33, 1.05))
+                    else:
+                        ax4.yaxis.label.set_rotation(-45)
+                        ax4.yaxis.labelpad = 10
+                        ax4.yaxis.label.set_verticalalignment('top')
+                        ax4.yaxis.label.set_horizontalalignment('left')
+                        ax4.yaxis.label.set_position((1.33, -0.1))
+                    # Apply Y4 min/max if set
+                    try:
+                        y4_min = float(self.y4_min_input.text())
+                        y4_max = float(self.y4_max_input.text())
+                        ax4.set_ylim(y4_min, y4_max)
+                    except ValueError:
+                        pass
                     legend_axes.append(ax4)
                     axes_labels.append(ax4.get_ylabel())
 
             # Set X-axis label using input
             ax1.set_xlabel(self.x_label_input.text() or x_col)
-            ax1.tick_params(axis='both', labelsize=base_fontsize)
+            ax1.tick_params(axis='x', labelsize=base_fontsize)
             ax1.xaxis.label.set_size(base_fontsize + 2)
-            # ax1.grid(True, linestyle='--', alpha=0.7)  # Removed as per instructions
 
-            # Make room for extra axes if Y3 or Y4 enabled
-            if y3_col or y4_col:
-                self.figure.subplots_adjust(right=0.85)
+            # Adjust subplot for multiple y-axes
+            self.figure.subplots_adjust(left=0.15, right=0.75, bottom=0.15, top=0.9)
 
             # Add combined legend at best location if enabled
             if self.show_legend_checkbox.isChecked():
@@ -998,9 +1086,8 @@ class PlotterUI(QMainWindow):
                     labels += lb
                 ax1.legend(lines, labels, loc='best', fontsize=base_fontsize)
 
-            # Enforce tight layout for clean export and adjust subplot
+            # Enforce tight layout for clean export
             self.figure.tight_layout()
-            self.figure.subplots_adjust(left=0.15, right=0.85, bottom=0.15, top=0.9)
             self.canvas.draw()
 
     def open_external_file(self):
