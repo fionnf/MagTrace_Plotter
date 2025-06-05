@@ -434,6 +434,15 @@ class PlotterUI(QMainWindow):
         self.setGeometry(100, 100, 1400, 800)
 
         self.df = None
+        # Base and plot timestamp unit combo boxes
+        self.base_unit_combo = QComboBox()
+        self.base_unit_combo.addItems(["ms", "s", "min", "h", "day"])
+        self.base_unit_combo.setCurrentText("min")
+
+        self.plot_unit_combo = QComboBox()
+        self.plot_unit_combo.addItems(["ms", "s", "min", "h", "day"])
+        self.plot_unit_combo.setCurrentText("min")
+
         self.setup_ui()
 
     def setup_ui(self):
@@ -723,6 +732,11 @@ class PlotterUI(QMainWindow):
         self.y2_deriv_checkbox.setEnabled(enabled)
 
     def setup_plot_controls(self, layout):
+        # Timestamp unit controls
+        layout.addWidget(QLabel("Base Timestamp Unit:"))
+        layout.addWidget(self.base_unit_combo)
+        layout.addWidget(QLabel("Plot Timestamp Unit:"))
+        layout.addWidget(self.plot_unit_combo)
         plot_button = QPushButton("Plot")
         plot_button.clicked.connect(self.plot_selected)
         layout.addWidget(plot_button)
@@ -815,12 +829,23 @@ class PlotterUI(QMainWindow):
             ax4 = None
             ax1.set_facecolor('#f9f9f9')
 
-            x_data = self.df[x_col]
+            # Timestamp scaling logic for X axis if first column is timestamp
+            df = self.df
+            if x_col == df.columns[0]:
+                # Use base/plot unit scaling
+                base_unit = self.base_unit_combo.currentText()
+                plot_unit = self.plot_unit_combo.currentText()
+                unit_to_min = {"ms": 1/60000, "s": 1/60, "min": 1, "h": 60, "day": 1440}
+                timestamps = df.iloc[:, 0].values
+                x_data = timestamps * unit_to_min[base_unit] / unit_to_min[plot_unit]
+                x_data = pd.Series(x_data, index=df.index)
+            else:
+                x_data = df[x_col]
             n_points = len(x_data)
             marker_size = min(max(3, 300 / n_points), 10)
             line_width = 2.0 if n_points < 200 else 1.5
 
-            mask = pd.Series(True, index=self.df.index)
+            mask = pd.Series(True, index=df.index)
             if x_min is not None:
                 mask &= x_data >= x_min
             if x_max is not None:
