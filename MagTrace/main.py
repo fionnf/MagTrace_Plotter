@@ -759,10 +759,12 @@ class PlotterUI(QMainWindow):
             x_max = float(self.x_max_input.text()) if self.x_max_input.text() else None
 
             self.figure.clear()
+            self.figure.set_facecolor('white')
             ax1 = self.figure.add_subplot(111)
             ax2 = None
             ax3 = None
             ax4 = None
+            ax1.set_facecolor('#f9f9f9')
 
             x_data = self.df[x_col]
 
@@ -785,10 +787,14 @@ class PlotterUI(QMainWindow):
                     x_data,
                     y1_data,
                     label=self.y1_legend_input.text() or y1_col,
-                    color='tab:blue'
+                    color='tab:blue',
+                    linewidth=2,
+                    alpha=0.9,
+                    marker='o'
                 )
                 ax1.set_ylabel(self.y1_label_input.text() or y1_col, color='tab:blue')
                 ax1.tick_params(axis='y', labelcolor='tab:blue')
+                ax1.tick_params(axis='both', labelsize=12)
 
             # Resistance plotting disables all Y2-Y4
             legend_axes = [ax1]
@@ -807,10 +813,20 @@ class PlotterUI(QMainWindow):
                 current = self.df[i_col][mask]
                 resistance = (voltage / current) * 1e6  # Convert to microohms
                 ax2 = ax1.twinx()
-                ax2.plot(x_data, resistance, label="Resistance", color='tab:red')
+                ax2.set_facecolor('#f9f9f9')
+                ax2.plot(
+                    x_data,
+                    resistance,
+                    label="Resistance",
+                    color='tab:red',
+                    linewidth=2,
+                    alpha=0.9,
+                    marker='o'
+                )
                 ax2.set_ylabel("Resistance (µΩ)", color='tab:red')
                 ax2.ticklabel_format(style='plain', axis='y')
                 ax2.tick_params(axis='y', labelcolor='tab:red')
+                ax2.tick_params(axis='both', labelsize=12)
                 legend_axes.append(ax2)
                 axes_labels.append(ax2.get_ylabel())
                 # Display resistance at 100 A in UI
@@ -825,6 +841,7 @@ class PlotterUI(QMainWindow):
                 # Plot Y2 if enabled
                 if y2_col:
                     ax2 = ax1.twinx()
+                    ax2.set_facecolor('#f9f9f9')
                     y2_data = self.df[y2_col][mask]
                     if self.y2_abs_checkbox.isChecked():
                         y2_data = y2_data.abs()
@@ -834,10 +851,14 @@ class PlotterUI(QMainWindow):
                         x_data,
                         y2_data,
                         label=self.y2_legend_input.text() or y2_col,
-                        color='tab:red'
+                        color='tab:red',
+                        linewidth=2,
+                        alpha=0.9,
+                        marker='o'
                     )
                     ax2.set_ylabel(self.y2_label_input.text() or y2_col, color='tab:red')
                     ax2.tick_params(axis='y', labelcolor='tab:red')
+                    ax2.tick_params(axis='both', labelsize=12)
                     legend_axes.append(ax2)
                     axes_labels.append(ax2.get_ylabel())
                 # Plot Y3 if enabled
@@ -845,9 +866,11 @@ class PlotterUI(QMainWindow):
                     # Create a new axis offset to the right
                     if not ax2:
                         ax2 = ax1.twinx()
+                        ax2.set_facecolor('#f9f9f9')
                         legend_axes.append(ax2)
                         axes_labels.append(ax2.get_ylabel())
                     ax3 = ax1.figure.add_axes(ax1.get_position(), frameon=False, sharex=ax1)
+                    ax3.set_facecolor('#f9f9f9')
                     ax3.yaxis.set_label_position('right')
                     ax3.yaxis.set_ticks_position('right')
                     # Offset Y3 axis to right
@@ -867,10 +890,14 @@ class PlotterUI(QMainWindow):
                         x_data,
                         y3_data,
                         label=self.y3_legend_input.text() or y3_col,
-                        color='tab:green'
+                        color='tab:green',
+                        linewidth=2,
+                        alpha=0.9,
+                        marker='o'
                     )
                     ax3.set_ylabel(self.y3_label_input.text() or y3_col, color='tab:green')
                     ax3.tick_params(axis='y', labelcolor='tab:green')
+                    ax3.tick_params(axis='both', labelsize=12)
                     legend_axes.append(ax3)
                     axes_labels.append(ax3.get_ylabel())
                 # Plot Y4 if enabled
@@ -878,10 +905,12 @@ class PlotterUI(QMainWindow):
                     # Create a new axis offset further right
                     if not ax2:
                         ax2 = ax1.twinx()
+                        ax2.set_facecolor('#f9f9f9')
                         legend_axes.append(ax2)
                         axes_labels.append(ax2.get_ylabel())
                     if not ax3:
                         ax3 = ax1.figure.add_axes(ax1.get_position(), frameon=False, sharex=ax1)
+                        ax3.set_facecolor('#f9f9f9')
                         ax3.yaxis.set_label_position('right')
                         ax3.yaxis.set_ticks_position('right')
                         ax3.spines['right'].set_position(('axes', 1.1))
@@ -893,6 +922,7 @@ class PlotterUI(QMainWindow):
                         legend_axes.append(ax3)
                         axes_labels.append(ax3.get_ylabel())
                     ax4 = ax1.figure.add_axes(ax1.get_position(), frameon=False, sharex=ax1)
+                    ax4.set_facecolor('#f9f9f9')
                     ax4.yaxis.set_label_position('right')
                     ax4.yaxis.set_ticks_position('right')
                     ax4.spines['right'].set_position(('axes', 1.2))
@@ -910,25 +940,34 @@ class PlotterUI(QMainWindow):
                         x_data,
                         y4_data,
                         label=self.y4_legend_input.text() or y4_col,
-                        color='tab:purple'
+                        color='tab:purple',
+                        linewidth=2,
+                        alpha=0.9,
+                        marker='o'
                     )
                     ax4.set_ylabel(self.y4_label_input.text() or y4_col, color='tab:purple')
                     ax4.tick_params(axis='y', labelcolor='tab:purple')
+                    ax4.tick_params(axis='both', labelsize=12)
                     legend_axes.append(ax4)
                     axes_labels.append(ax4.get_ylabel())
 
             # Set X-axis label using input
             ax1.set_xlabel(self.x_label_input.text() or x_col)
-            ax1.grid(True)
+            ax1.tick_params(axis='both', labelsize=12)
+            ax1.grid(True, linestyle='--', alpha=0.7)
 
-            # Add combined legend at bottom right if enabled
+            # Make room for extra axes if Y3 or Y4 enabled
+            if y3_col or y4_col:
+                self.figure.subplots_adjust(right=0.85)
+
+            # Add combined legend at best location if enabled
             if self.show_legend_checkbox.isChecked():
                 lines, labels = [], []
                 for ax in legend_axes:
                     l, lb = ax.get_legend_handles_labels()
                     lines += l
                     labels += lb
-                ax1.legend(lines, labels, loc='lower right')
+                ax1.legend(lines, labels, loc='best', fontsize=10)
 
             # Enforce tight layout for clean export
             self.figure.tight_layout()
