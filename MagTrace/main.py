@@ -444,6 +444,7 @@ class PlotterUI(QMainWindow):
 
         # Left panel setup
         left_panel = QWidget()
+        left_panel.setMinimumWidth(300)
         left_layout = QVBoxLayout(left_panel)
 
         # File selection
@@ -460,8 +461,12 @@ class PlotterUI(QMainWindow):
         right_layout = QVBoxLayout(right_panel)
         self.setup_plot_area(right_layout)
 
-        # Add panels to main layout
-        layout.addWidget(left_panel, stretch=1)
+        # Add panels to main layout, left panel in scroll area
+        from PyQt5.QtWidgets import QScrollArea
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(left_panel)
+        layout.addWidget(scroll_area, stretch=1)
         layout.addWidget(right_panel, stretch=2)
 
     def setup_file_selection(self, layout):
@@ -481,6 +486,10 @@ class PlotterUI(QMainWindow):
         self.y1_axis_combo = QComboBox()
         self.y2_axis_combo = QComboBox()
         self.y2_axis_combo.setEnabled(False)
+        self.y3_axis_combo = QComboBox()
+        self.y3_axis_combo.setEnabled(False)
+        self.y4_axis_combo = QComboBox()
+        self.y4_axis_combo.setEnabled(False)
 
         self.x_label_input = QLineEdit()
         self.x_label_input.setPlaceholderText("X-axis Label")
@@ -492,8 +501,20 @@ class PlotterUI(QMainWindow):
         self.y2_label_input.setPlaceholderText("Right Y-axis Label")
         self.y2_label_input.setEnabled(False)
 
+        self.y3_label_input = QLineEdit()
+        self.y3_label_input.setPlaceholderText("Y3 Axis Label")
+        self.y3_label_input.setEnabled(False)
+
+        self.y4_label_input = QLineEdit()
+        self.y4_label_input.setPlaceholderText("Y4 Axis Label")
+        self.y4_label_input.setEnabled(False)
+
         self.enable_y2_checkbox = QCheckBox("Enable Second Y-axis")
         self.enable_y2_checkbox.stateChanged.connect(self.toggle_second_y_axis)
+        self.enable_y3_checkbox = QCheckBox("Enable Third Y-axis")
+        self.enable_y3_checkbox.stateChanged.connect(self.toggle_third_y_axis)
+        self.enable_y4_checkbox = QCheckBox("Enable Fourth Y-axis")
+        self.enable_y4_checkbox.stateChanged.connect(self.toggle_fourth_y_axis)
 
         # --- Resistance plotting controls ---
         self.enable_resistance_checkbox = QCheckBox("Calculate and Plot Resistance")
@@ -527,15 +548,23 @@ class PlotterUI(QMainWindow):
         self.x_min_input.setPlaceholderText("X min")
         self.x_max_input.setPlaceholderText("X max")
 
-        # Add absolute value checkboxes for Y1 and Y2
+        # Add absolute value checkboxes for Y1-Y4
         self.y1_abs_checkbox = QCheckBox("Use |Y1|")
         self.y2_abs_checkbox = QCheckBox("Use |Y2|")
         self.y2_abs_checkbox.setEnabled(False)
+        self.y3_abs_checkbox = QCheckBox("Use |Y3|")
+        self.y3_abs_checkbox.setEnabled(False)
+        self.y4_abs_checkbox = QCheckBox("Use |Y4|")
+        self.y4_abs_checkbox.setEnabled(False)
 
-        # Add derivative checkboxes for Y1 and Y2
+        # Add derivative checkboxes for Y1-Y4
         self.y1_deriv_checkbox = QCheckBox("Use d/dx Y1")
         self.y2_deriv_checkbox = QCheckBox("Use d/dx Y2")
         self.y2_deriv_checkbox.setEnabled(False)
+        self.y3_deriv_checkbox = QCheckBox("Use d/dx Y3")
+        self.y3_deriv_checkbox.setEnabled(False)
+        self.y4_deriv_checkbox = QCheckBox("Use d/dx Y4")
+        self.y4_deriv_checkbox.setEnabled(False)
 
         layout.addWidget(QLabel("X Axis:"))
         layout.addWidget(self.x_axis_combo)
@@ -551,6 +580,18 @@ class PlotterUI(QMainWindow):
         layout.addWidget(self.y2_label_input)
         layout.addWidget(self.y2_abs_checkbox)
         layout.addWidget(self.y2_deriv_checkbox)
+        layout.addWidget(self.enable_y3_checkbox)
+        layout.addWidget(QLabel("Y3 Axis:"))
+        layout.addWidget(self.y3_axis_combo)
+        layout.addWidget(self.y3_label_input)
+        layout.addWidget(self.y3_abs_checkbox)
+        layout.addWidget(self.y3_deriv_checkbox)
+        layout.addWidget(self.enable_y4_checkbox)
+        layout.addWidget(QLabel("Y4 Axis:"))
+        layout.addWidget(self.y4_axis_combo)
+        layout.addWidget(self.y4_label_input)
+        layout.addWidget(self.y4_abs_checkbox)
+        layout.addWidget(self.y4_deriv_checkbox)
         layout.addWidget(QLabel("X range:"))
         layout.addWidget(self.x_min_input)
         layout.addWidget(self.x_max_input)
@@ -567,22 +608,69 @@ class PlotterUI(QMainWindow):
         self.y2_legend_input.setPlaceholderText("Y2 Legend")
         self.y2_legend_input.setEnabled(False)
 
+        self.y3_legend_input = QLineEdit()
+        self.y3_legend_input.setPlaceholderText("Y3 Legend")
+        self.y3_legend_input.setEnabled(False)
+
+        self.y4_legend_input = QLineEdit()
+        self.y4_legend_input.setPlaceholderText("Y4 Legend")
+        self.y4_legend_input.setEnabled(False)
+
         layout.addWidget(self.y1_legend_input)
         layout.addWidget(self.y2_legend_input)
+        layout.addWidget(self.y3_legend_input)
+        layout.addWidget(self.y4_legend_input)
 
         # Add QLabel to display R at 100A under the options panel
         self.r100a_label = QLabel("")
         layout.addWidget(self.r100a_label)
 
+    def toggle_third_y_axis(self, state):
+        enabled = state == Qt.Checked
+        self.y3_axis_combo.setEnabled(enabled)
+        self.y3_label_input.setEnabled(enabled)
+        self.y3_abs_checkbox.setEnabled(enabled)
+        self.y3_legend_input.setEnabled(enabled)
+        self.y3_deriv_checkbox.setEnabled(enabled)
+
+    def toggle_fourth_y_axis(self, state):
+        enabled = state == Qt.Checked
+        self.y4_axis_combo.setEnabled(enabled)
+        self.y4_label_input.setEnabled(enabled)
+        self.y4_abs_checkbox.setEnabled(enabled)
+        self.y4_legend_input.setEnabled(enabled)
+        self.y4_deriv_checkbox.setEnabled(enabled)
+
     def toggle_resistance_controls(self, state):
         enabled = state == Qt.Checked
         self.resistance_widget.setVisible(enabled)
+        # Disable all extra Y axes if resistance is enabled
         if enabled:
             self.y2_axis_combo.setEnabled(False)
             self.y2_label_input.setEnabled(False)
             self.y2_abs_checkbox.setEnabled(False)
             self.y2_legend_input.setEnabled(False)
             self.y2_deriv_checkbox.setEnabled(False)
+            self.enable_y2_checkbox.setEnabled(False)
+            self.y3_axis_combo.setEnabled(False)
+            self.y3_label_input.setEnabled(False)
+            self.y3_abs_checkbox.setEnabled(False)
+            self.y3_legend_input.setEnabled(False)
+            self.y3_deriv_checkbox.setEnabled(False)
+            self.enable_y3_checkbox.setEnabled(False)
+            self.y4_axis_combo.setEnabled(False)
+            self.y4_label_input.setEnabled(False)
+            self.y4_abs_checkbox.setEnabled(False)
+            self.y4_legend_input.setEnabled(False)
+            self.y4_deriv_checkbox.setEnabled(False)
+            self.enable_y4_checkbox.setEnabled(False)
+        else:
+            self.enable_y2_checkbox.setEnabled(True)
+            self.enable_y3_checkbox.setEnabled(True)
+            self.enable_y4_checkbox.setEnabled(True)
+            self.toggle_second_y_axis(self.enable_y2_checkbox.checkState())
+            self.toggle_third_y_axis(self.enable_y3_checkbox.checkState())
+            self.toggle_fourth_y_axis(self.enable_y4_checkbox.checkState())
 
     def toggle_second_y_axis(self, state):
         enabled = state == Qt.Checked
@@ -617,9 +705,13 @@ class PlotterUI(QMainWindow):
                 self.x_axis_combo.clear()
                 self.y1_axis_combo.clear()
                 self.y2_axis_combo.clear()
+                self.y3_axis_combo.clear()
+                self.y4_axis_combo.clear()
                 self.x_axis_combo.addItems(self.df.columns)
                 self.y1_axis_combo.addItems(self.df.columns)
                 self.y2_axis_combo.addItems(self.df.columns)
+                self.y3_axis_combo.addItems(self.df.columns)
+                self.y4_axis_combo.addItems(self.df.columns)
                 # Update resistance combos
                 self.voltage_combo.clear()
                 self.current_combo.clear()
@@ -630,29 +722,47 @@ class PlotterUI(QMainWindow):
 
     def plot_selected(self):
         if self.df is not None:
-            # Guard to not try plotting both custom Y2 and resistance
+            # Guard to not try plotting both custom Y2-Y4 and resistance
             if self.enable_resistance_checkbox.isChecked():
                 self.y2_axis_combo.setEnabled(False)
                 self.y2_label_input.setEnabled(False)
                 self.y2_abs_checkbox.setEnabled(False)
                 self.y2_legend_input.setEnabled(False)
                 self.y2_deriv_checkbox.setEnabled(False)
+                self.enable_y2_checkbox.setEnabled(False)
+                self.y3_axis_combo.setEnabled(False)
+                self.y3_label_input.setEnabled(False)
+                self.y3_abs_checkbox.setEnabled(False)
+                self.y3_legend_input.setEnabled(False)
+                self.y3_deriv_checkbox.setEnabled(False)
+                self.enable_y3_checkbox.setEnabled(False)
+                self.y4_axis_combo.setEnabled(False)
+                self.y4_label_input.setEnabled(False)
+                self.y4_abs_checkbox.setEnabled(False)
+                self.y4_legend_input.setEnabled(False)
+                self.y4_deriv_checkbox.setEnabled(False)
+                self.enable_y4_checkbox.setEnabled(False)
             else:
-                self.y2_axis_combo.setEnabled(self.enable_y2_checkbox.isChecked())
-                self.y2_label_input.setEnabled(self.enable_y2_checkbox.isChecked())
-                self.y2_abs_checkbox.setEnabled(self.enable_y2_checkbox.isChecked())
-                self.y2_legend_input.setEnabled(self.enable_y2_checkbox.isChecked())
-                self.y2_deriv_checkbox.setEnabled(self.enable_y2_checkbox.isChecked())
+                self.enable_y2_checkbox.setEnabled(True)
+                self.enable_y3_checkbox.setEnabled(True)
+                self.enable_y4_checkbox.setEnabled(True)
+                self.toggle_second_y_axis(self.enable_y2_checkbox.checkState())
+                self.toggle_third_y_axis(self.enable_y3_checkbox.checkState())
+                self.toggle_fourth_y_axis(self.enable_y4_checkbox.checkState())
 
             x_col = self.x_axis_combo.currentText()
             y1_col = self.y1_axis_combo.currentText()
             y2_col = self.y2_axis_combo.currentText() if self.y2_axis_combo.isEnabled() else None
+            y3_col = self.y3_axis_combo.currentText() if self.y3_axis_combo.isEnabled() else None
+            y4_col = self.y4_axis_combo.currentText() if self.y4_axis_combo.isEnabled() else None
             x_min = float(self.x_min_input.text()) if self.x_min_input.text() else None
             x_max = float(self.x_max_input.text()) if self.x_max_input.text() else None
 
             self.figure.clear()
             ax1 = self.figure.add_subplot(111)
             ax2 = None
+            ax3 = None
+            ax4 = None
 
             x_data = self.df[x_col]
 
@@ -664,13 +774,13 @@ class PlotterUI(QMainWindow):
 
             x_data = x_data[mask]
 
+            # Plot Y1
             if y1_col:
                 y1_data = self.df[y1_col][mask]
                 if self.y1_abs_checkbox.isChecked():
                     y1_data = y1_data.abs()
                 if self.y1_deriv_checkbox.isChecked():
                     y1_data = y1_data.diff() / x_data.diff()
-                # Use custom legend entry for Y1
                 ax1.plot(
                     x_data,
                     y1_data,
@@ -680,12 +790,13 @@ class PlotterUI(QMainWindow):
                 ax1.set_ylabel(self.y1_label_input.text() or y1_col, color='tab:blue')
                 ax1.tick_params(axis='y', labelcolor='tab:blue')
 
-            # Resistance plotting
+            # Resistance plotting disables all Y2-Y4
+            legend_axes = [ax1]
+            axes_labels = [ax1.get_ylabel()]
             if self.enable_resistance_checkbox.isChecked():
                 v_col = self.voltage_combo.currentText()
                 i_col = self.current_combo.currentText()
                 scale_text = self.voltage_scale_combo.currentText()
-                # Updated resistance scale factor mapping
                 scale_factor = {
                     'mV': 1.0e-3,
                     'mV×100': 1.0e-3 / 100,
@@ -700,7 +811,8 @@ class PlotterUI(QMainWindow):
                 ax2.set_ylabel("Resistance (µΩ)", color='tab:red')
                 ax2.ticklabel_format(style='plain', axis='y')
                 ax2.tick_params(axis='y', labelcolor='tab:red')
-
+                legend_axes.append(ax2)
+                axes_labels.append(ax2.get_ylabel())
                 # Display resistance at 100 A in UI
                 if not current.empty:
                     closest = current.sub(100).abs().idxmin()
@@ -708,27 +820,102 @@ class PlotterUI(QMainWindow):
                     self.r100a_label.setText(f"Resistance at 100A: {r_at_100a:.2f} µΩ")
                 else:
                     self.r100a_label.setText("")
-            elif y2_col:
-                ax2 = ax1.twinx()
-                y2_data = self.df[y2_col][mask]
-                if self.y2_abs_checkbox.isChecked():
-                    y2_data = y2_data.abs()
-                if self.y2_deriv_checkbox.isChecked():
-                    y2_data = y2_data.diff() / x_data.diff()
-                # Use custom legend entry for Y2
-                ax2.plot(
-                    x_data,
-                    y2_data,
-                    label=self.y2_legend_input.text() or y2_col,
-                    color='tab:red'
-                )
-                ax2.set_ylabel(self.y2_label_input.text() or y2_col, color='tab:red')
-                ax2.tick_params(axis='y', labelcolor='tab:red')
-                # Clear the R at 100A label if resistance is not plotted
-                self.r100a_label.setText("")
             else:
-                # Also clear the R at 100A label if resistance is not plotted
                 self.r100a_label.setText("")
+                # Plot Y2 if enabled
+                if y2_col:
+                    ax2 = ax1.twinx()
+                    y2_data = self.df[y2_col][mask]
+                    if self.y2_abs_checkbox.isChecked():
+                        y2_data = y2_data.abs()
+                    if self.y2_deriv_checkbox.isChecked():
+                        y2_data = y2_data.diff() / x_data.diff()
+                    ax2.plot(
+                        x_data,
+                        y2_data,
+                        label=self.y2_legend_input.text() or y2_col,
+                        color='tab:red'
+                    )
+                    ax2.set_ylabel(self.y2_label_input.text() or y2_col, color='tab:red')
+                    ax2.tick_params(axis='y', labelcolor='tab:red')
+                    legend_axes.append(ax2)
+                    axes_labels.append(ax2.get_ylabel())
+                # Plot Y3 if enabled
+                if y3_col:
+                    # Create a new axis offset to the right
+                    if not ax2:
+                        ax2 = ax1.twinx()
+                        legend_axes.append(ax2)
+                        axes_labels.append(ax2.get_ylabel())
+                    ax3 = ax1.figure.add_axes(ax1.get_position(), frameon=False, sharex=ax1)
+                    ax3.yaxis.set_label_position('right')
+                    ax3.yaxis.set_ticks_position('right')
+                    # Offset Y3 axis to right
+                    ax3.spines['right'].set_position(('axes', 1.1))
+                    # Hide other spines
+                    ax3.spines['left'].set_visible(False)
+                    ax3.spines['top'].set_visible(False)
+                    ax3.spines['bottom'].set_visible(False)
+                    ax3.spines['right'].set_visible(True)
+                    ax3.patch.set_alpha(0)
+                    y3_data = self.df[y3_col][mask]
+                    if self.y3_abs_checkbox.isChecked():
+                        y3_data = y3_data.abs()
+                    if self.y3_deriv_checkbox.isChecked():
+                        y3_data = y3_data.diff() / x_data.diff()
+                    ax3.plot(
+                        x_data,
+                        y3_data,
+                        label=self.y3_legend_input.text() or y3_col,
+                        color='tab:green'
+                    )
+                    ax3.set_ylabel(self.y3_label_input.text() or y3_col, color='tab:green')
+                    ax3.tick_params(axis='y', labelcolor='tab:green')
+                    legend_axes.append(ax3)
+                    axes_labels.append(ax3.get_ylabel())
+                # Plot Y4 if enabled
+                if y4_col:
+                    # Create a new axis offset further right
+                    if not ax2:
+                        ax2 = ax1.twinx()
+                        legend_axes.append(ax2)
+                        axes_labels.append(ax2.get_ylabel())
+                    if not ax3:
+                        ax3 = ax1.figure.add_axes(ax1.get_position(), frameon=False, sharex=ax1)
+                        ax3.yaxis.set_label_position('right')
+                        ax3.yaxis.set_ticks_position('right')
+                        ax3.spines['right'].set_position(('axes', 1.1))
+                        ax3.spines['left'].set_visible(False)
+                        ax3.spines['top'].set_visible(False)
+                        ax3.spines['bottom'].set_visible(False)
+                        ax3.spines['right'].set_visible(True)
+                        ax3.patch.set_alpha(0)
+                        legend_axes.append(ax3)
+                        axes_labels.append(ax3.get_ylabel())
+                    ax4 = ax1.figure.add_axes(ax1.get_position(), frameon=False, sharex=ax1)
+                    ax4.yaxis.set_label_position('right')
+                    ax4.yaxis.set_ticks_position('right')
+                    ax4.spines['right'].set_position(('axes', 1.2))
+                    ax4.spines['left'].set_visible(False)
+                    ax4.spines['top'].set_visible(False)
+                    ax4.spines['bottom'].set_visible(False)
+                    ax4.spines['right'].set_visible(True)
+                    ax4.patch.set_alpha(0)
+                    y4_data = self.df[y4_col][mask]
+                    if self.y4_abs_checkbox.isChecked():
+                        y4_data = y4_data.abs()
+                    if self.y4_deriv_checkbox.isChecked():
+                        y4_data = y4_data.diff() / x_data.diff()
+                    ax4.plot(
+                        x_data,
+                        y4_data,
+                        label=self.y4_legend_input.text() or y4_col,
+                        color='tab:purple'
+                    )
+                    ax4.set_ylabel(self.y4_label_input.text() or y4_col, color='tab:purple')
+                    ax4.tick_params(axis='y', labelcolor='tab:purple')
+                    legend_axes.append(ax4)
+                    axes_labels.append(ax4.get_ylabel())
 
             # Set X-axis label using input
             ax1.set_xlabel(self.x_label_input.text() or x_col)
@@ -736,11 +923,11 @@ class PlotterUI(QMainWindow):
 
             # Add combined legend at bottom right if enabled
             if self.show_legend_checkbox.isChecked():
-                lines, labels = ax1.get_legend_handles_labels()
-                if ax2:
-                    l2, lb2 = ax2.get_legend_handles_labels()
-                    lines += l2
-                    labels += lb2
+                lines, labels = [], []
+                for ax in legend_axes:
+                    l, lb = ax.get_legend_handles_labels()
+                    lines += l
+                    labels += lb
                 ax1.legend(lines, labels, loc='lower right')
 
             # Enforce tight layout for clean export
@@ -755,9 +942,13 @@ class PlotterUI(QMainWindow):
                 self.x_axis_combo.clear()
                 self.y1_axis_combo.clear()
                 self.y2_axis_combo.clear()
+                self.y3_axis_combo.clear()
+                self.y4_axis_combo.clear()
                 self.x_axis_combo.addItems(self.df.columns)
                 self.y1_axis_combo.addItems(self.df.columns)
                 self.y2_axis_combo.addItems(self.df.columns)
+                self.y3_axis_combo.addItems(self.df.columns)
+                self.y4_axis_combo.addItems(self.df.columns)
                 # Update resistance combos
                 self.voltage_combo.clear()
                 self.current_combo.clear()
