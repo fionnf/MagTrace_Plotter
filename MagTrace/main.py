@@ -346,7 +346,7 @@ class DataCleanerUI(QMainWindow):
         else:
             ax.set_xlabel('Index')
         ax.set_ylabel('Value')
-        ax.grid(True)
+        # ax.grid(True)  # Removed as per instructions
         ax.legend()
         # Increase font sizes
         ax.tick_params(axis='both', labelsize=12)
@@ -686,7 +686,7 @@ class PlotterUI(QMainWindow):
         layout.addWidget(plot_button)
 
     def setup_plot_area(self, layout):
-        self.figure = Figure(figsize=(6, 4), dpi=300)  # Standard size for academic plots
+        self.figure = Figure(figsize=(8, 6), dpi=100)  # 800x600 pixels, 4:3 aspect ratio
         self.canvas = FigureCanvas(self.figure)
         self.toolbar = NavigationToolbar(self.canvas, self)
         layout.addWidget(self.toolbar)
@@ -760,6 +760,8 @@ class PlotterUI(QMainWindow):
 
             self.figure.clear()
             self.figure.set_facecolor('white')
+            self.canvas.setFixedSize(800, 600)
+            base_fontsize = max(int(self.figure.get_size_inches()[0] * self.figure.dpi / 100), 10)
             ax1 = self.figure.add_subplot(111)
             ax2 = None
             ax3 = None
@@ -767,6 +769,9 @@ class PlotterUI(QMainWindow):
             ax1.set_facecolor('#f9f9f9')
 
             x_data = self.df[x_col]
+            n_points = len(x_data)
+            marker_size = min(max(3, 300 / n_points), 10)
+            line_width = 2.0 if n_points < 200 else 1.5
 
             mask = pd.Series(True, index=self.df.index)
             if x_min is not None:
@@ -788,15 +793,16 @@ class PlotterUI(QMainWindow):
                     y1_data,
                     label=self.y1_legend_input.text() or y1_col,
                     color='tab:blue',
-                    linewidth=2,
+                    linewidth=line_width,
                     alpha=0.9,
-                    marker='o'
+                    marker='o',
+                    markersize=marker_size,
                 )
                 ax1.set_ylabel(self.y1_label_input.text() or y1_col, color='tab:blue')
-                ax1.tick_params(axis='y', labelcolor='tab:blue')
-                ax1.tick_params(axis='both', labelsize=12)
+                ax1.tick_params(axis='both', labelsize=base_fontsize)
+                ax1.xaxis.label.set_size(base_fontsize + 2)
+                ax1.yaxis.label.set_size(base_fontsize + 2)
 
-            # Resistance plotting disables all Y2-Y4
             legend_axes = [ax1]
             axes_labels = [ax1.get_ylabel()]
             if self.enable_resistance_checkbox.isChecked():
@@ -819,14 +825,17 @@ class PlotterUI(QMainWindow):
                     resistance,
                     label="Resistance",
                     color='tab:red',
-                    linewidth=2,
+                    linewidth=line_width,
                     alpha=0.9,
-                    marker='o'
+                    marker='o',
+                    markersize=marker_size,
                 )
                 ax2.set_ylabel("Resistance (µΩ)", color='tab:red')
                 ax2.ticklabel_format(style='plain', axis='y')
                 ax2.tick_params(axis='y', labelcolor='tab:red')
-                ax2.tick_params(axis='both', labelsize=12)
+                ax2.tick_params(axis='both', labelsize=base_fontsize)
+                ax2.xaxis.label.set_size(base_fontsize + 2)
+                ax2.yaxis.label.set_size(base_fontsize + 2)
                 legend_axes.append(ax2)
                 axes_labels.append(ax2.get_ylabel())
                 # Display resistance at 100 A in UI
@@ -852,109 +861,129 @@ class PlotterUI(QMainWindow):
                         y2_data,
                         label=self.y2_legend_input.text() or y2_col,
                         color='tab:red',
-                        linewidth=2,
+                        linewidth=line_width,
                         alpha=0.9,
-                        marker='o'
+                        marker='o',
+                        markersize=marker_size,
                     )
                     ax2.set_ylabel(self.y2_label_input.text() or y2_col, color='tab:red')
-                    ax2.tick_params(axis='y', labelcolor='tab:red')
-                    ax2.tick_params(axis='both', labelsize=12)
+                    ax2.tick_params(axis='both', labelsize=base_fontsize)
+                    ax2.xaxis.label.set_size(base_fontsize + 2)
+                    ax2.yaxis.label.set_size(base_fontsize + 2)
                     legend_axes.append(ax2)
                     axes_labels.append(ax2.get_ylabel())
                 # Plot Y3 if enabled
                 if y3_col:
-                    # Create a new axis offset to the right
                     if not ax2:
                         ax2 = ax1.twinx()
                         ax2.set_facecolor('#f9f9f9')
                         legend_axes.append(ax2)
                         axes_labels.append(ax2.get_ylabel())
-                    ax3 = ax1.figure.add_axes(ax1.get_position(), frameon=False, sharex=ax1)
+                    # Create ax3, offset its spine for visual clarity
+                    ax3 = ax1.figure.add_axes(ax1.get_position(), frameon=True, sharex=ax1)
                     ax3.set_facecolor('#f9f9f9')
                     ax3.yaxis.set_label_position('right')
                     ax3.yaxis.set_ticks_position('right')
-                    # Offset Y3 axis to right
-                    ax3.spines['right'].set_position(('axes', 1.1))
-                    # Hide other spines
+                    ax3.spines['right'].set_position(('axes', 1.15))
+                    ax3.set_frame_on(True)
+                    ax3.spines['right'].set_visible(True)
                     ax3.spines['left'].set_visible(False)
                     ax3.spines['top'].set_visible(False)
                     ax3.spines['bottom'].set_visible(False)
-                    ax3.spines['right'].set_visible(True)
                     ax3.patch.set_alpha(0)
                     y3_data = self.df[y3_col][mask]
                     if self.y3_abs_checkbox.isChecked():
                         y3_data = y3_data.abs()
                     if self.y3_deriv_checkbox.isChecked():
                         y3_data = y3_data.diff() / x_data.diff()
-                    ax3.plot(
+                    line3 = ax3.plot(
                         x_data,
                         y3_data,
                         label=self.y3_legend_input.text() or y3_col,
                         color='tab:green',
-                        linewidth=2,
+                        linewidth=line_width,
                         alpha=0.9,
-                        marker='o'
+                        marker='o',
+                        markersize=marker_size,
                     )
                     ax3.set_ylabel(self.y3_label_input.text() or y3_col, color='tab:green')
-                    ax3.tick_params(axis='y', labelcolor='tab:green')
-                    ax3.tick_params(axis='both', labelsize=12)
+                    # Color-specific styling for ax3 (tab:green)
+                    color = 'tab:green'
+                    ax3.spines["right"].set_color(color)
+                    ax3.tick_params(axis='y', colors=color, labelsize=base_fontsize)
+                    ax3.yaxis.label.set_color(color)
+                    ax3.yaxis.label.set_size(base_fontsize + 2)
                     legend_axes.append(ax3)
                     axes_labels.append(ax3.get_ylabel())
                 # Plot Y4 if enabled
                 if y4_col:
-                    # Create a new axis offset further right
                     if not ax2:
                         ax2 = ax1.twinx()
                         ax2.set_facecolor('#f9f9f9')
                         legend_axes.append(ax2)
                         axes_labels.append(ax2.get_ylabel())
                     if not ax3:
-                        ax3 = ax1.figure.add_axes(ax1.get_position(), frameon=False, sharex=ax1)
+                        ax3 = ax1.figure.add_axes(ax1.get_position(), frameon=True, sharex=ax1)
                         ax3.set_facecolor('#f9f9f9')
                         ax3.yaxis.set_label_position('right')
                         ax3.yaxis.set_ticks_position('right')
-                        ax3.spines['right'].set_position(('axes', 1.1))
+                        ax3.spines['right'].set_position(('axes', 1.15))
+                        ax3.set_frame_on(True)
+                        ax3.spines['right'].set_visible(True)
                         ax3.spines['left'].set_visible(False)
                         ax3.spines['top'].set_visible(False)
                         ax3.spines['bottom'].set_visible(False)
-                        ax3.spines['right'].set_visible(True)
                         ax3.patch.set_alpha(0)
+                        # Color-specific styling for ax3 (tab:green)
+                        color = 'tab:green'
+                        ax3.spines["right"].set_color(color)
+                        ax3.tick_params(axis='y', colors=color, labelsize=base_fontsize)
+                        ax3.yaxis.label.set_color(color)
+                        ax3.yaxis.label.set_size(base_fontsize + 2)
                         legend_axes.append(ax3)
                         axes_labels.append(ax3.get_ylabel())
-                    ax4 = ax1.figure.add_axes(ax1.get_position(), frameon=False, sharex=ax1)
+                    # Create ax4, offset its spine further to avoid overlap
+                    ax4 = ax1.figure.add_axes(ax1.get_position(), frameon=True, sharex=ax1)
                     ax4.set_facecolor('#f9f9f9')
                     ax4.yaxis.set_label_position('right')
                     ax4.yaxis.set_ticks_position('right')
-                    ax4.spines['right'].set_position(('axes', 1.2))
+                    ax4.spines['right'].set_position(('axes', 1.3))
+                    ax4.set_frame_on(True)
+                    ax4.spines['right'].set_visible(True)
                     ax4.spines['left'].set_visible(False)
                     ax4.spines['top'].set_visible(False)
                     ax4.spines['bottom'].set_visible(False)
-                    ax4.spines['right'].set_visible(True)
                     ax4.patch.set_alpha(0)
                     y4_data = self.df[y4_col][mask]
                     if self.y4_abs_checkbox.isChecked():
                         y4_data = y4_data.abs()
                     if self.y4_deriv_checkbox.isChecked():
                         y4_data = y4_data.diff() / x_data.diff()
-                    ax4.plot(
+                    line4 = ax4.plot(
                         x_data,
                         y4_data,
                         label=self.y4_legend_input.text() or y4_col,
                         color='tab:purple',
-                        linewidth=2,
+                        linewidth=line_width,
                         alpha=0.9,
-                        marker='o'
+                        marker='o',
+                        markersize=marker_size,
                     )
                     ax4.set_ylabel(self.y4_label_input.text() or y4_col, color='tab:purple')
-                    ax4.tick_params(axis='y', labelcolor='tab:purple')
-                    ax4.tick_params(axis='both', labelsize=12)
+                    # Color-specific styling for ax4 (tab:purple)
+                    color = 'tab:purple'
+                    ax4.spines["right"].set_color(color)
+                    ax4.tick_params(axis='y', colors=color, labelsize=base_fontsize)
+                    ax4.yaxis.label.set_color(color)
+                    ax4.yaxis.label.set_size(base_fontsize + 2)
                     legend_axes.append(ax4)
                     axes_labels.append(ax4.get_ylabel())
 
             # Set X-axis label using input
             ax1.set_xlabel(self.x_label_input.text() or x_col)
-            ax1.tick_params(axis='both', labelsize=12)
-            ax1.grid(True, linestyle='--', alpha=0.7)
+            ax1.tick_params(axis='both', labelsize=base_fontsize)
+            ax1.xaxis.label.set_size(base_fontsize + 2)
+            # ax1.grid(True, linestyle='--', alpha=0.7)  # Removed as per instructions
 
             # Make room for extra axes if Y3 or Y4 enabled
             if y3_col or y4_col:
@@ -967,10 +996,11 @@ class PlotterUI(QMainWindow):
                     l, lb = ax.get_legend_handles_labels()
                     lines += l
                     labels += lb
-                ax1.legend(lines, labels, loc='best', fontsize=10)
+                ax1.legend(lines, labels, loc='best', fontsize=base_fontsize)
 
-            # Enforce tight layout for clean export
+            # Enforce tight layout for clean export and adjust subplot
             self.figure.tight_layout()
+            self.figure.subplots_adjust(left=0.15, right=0.85, bottom=0.15, top=0.9)
             self.canvas.draw()
 
     def open_external_file(self):
@@ -1300,7 +1330,7 @@ class LiveViewerUI(QMainWindow):
             ax2.set_ylabel(y2_col, color='tab:red')
             ax2.tick_params(axis='y', labelcolor='tab:red')
         ax.set_xlabel(x_col)
-        ax.grid(True)
+        # ax.grid(True)  # Removed as per instructions
         ax.legend(loc='upper left')
         self.figure.tight_layout()
         self.canvas.draw()
