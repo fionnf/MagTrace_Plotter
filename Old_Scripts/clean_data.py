@@ -15,15 +15,41 @@ def flatten_col(col):
     else:
         return str(col).strip()
 
-# Define the function to load and process the file
+
 def load_and_process_file(file_path):
-    skip_rows = 1
-    df = pd.read_csv(file_path, delimiter=';', skiprows=skip_rows, header=[0, 1])
-    df = df.dropna(axis=1, how='all')
-    df.columns = [flatten_col(col) for col in df.columns]
+    # Read raw header rows
+    with open(file_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    # Skip first two rows (LabVIEW and description)
+    header_1 = lines[2].strip().split(';')
+    header_2 = lines[3].strip().split(';')
+
+    # Combine header names
+    headers = []
+    for h1, h2 in zip(header_1, header_2):
+        h1 = h1.strip()
+        h2 = h2.strip()
+        if h1 and h2 and h1 != h2:
+            headers.append(f"{h1}({h2})")
+        else:
+            headers.append(h1 or h2)
+
+    # Load the DataFrame from line 5 onward
+    df = pd.read_csv(file_path, delimiter=';', skiprows=4, header=None)
+    df.columns = headers[:df.shape[1]]  # Trim header list if needed
+
     df = df.apply(pd.to_numeric, errors='coerce')
-    df['Timestamp'] = df['Timestamp'] / 1000  # Convert to seconds
-    df['Timestamp'] = df['Timestamp'] / 60    # Convert to minutes
+
+    # Select the first valid 'Timestamp' column
+    for col in df.columns:
+        if "Timestamp" in col and df[col].notna().any():
+            df['Timestamp'] = df[col]
+            break
+
+    df['Timestamp'] = df['Timestamp'] / 1000  # ms to sec
+    df['Timestamp'] = df['Timestamp'] / 60  # sec to min
+
     print("Column Headers:", df.columns)
     return df
 
@@ -78,8 +104,8 @@ def filter_and_plot(file_path, column, min_time, max_time, window_size=51, polyo
     plt.show()
 
 # Example usage
-file_path = '/Users/fionnferreira/Library/CloudStorage/GoogleDrive-fionnferreira@gmail.com/My Drive/Barnes Group/Magnets/Ralph_1/Ralph 2x10m Shanghai He 052225 processed (2)'
-column = 'CH13(Hall)'
+file_path = '/Users/fionnferreira/Library/CloudStorage/GoogleDrive-fionnferreira@gmail.com/My Drive/Barnes Group/Magnets/Mgn_019/Mgn_019_Phoenix40_SP_FF_100725_processed'
+column = 'Hall Sensor 1 (T)(Cryohallsensor  2mA calval 3)'
 min_time = 0
 max_time = 600
 remove_windows = []  # Example time windows to remove [(x, y), (z, w)]

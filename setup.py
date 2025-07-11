@@ -15,7 +15,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "MagTrace = MagTrace.main:main"
+            "MagTrace = main:main"
         ]
     },
     classifiers=[
