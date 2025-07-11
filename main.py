@@ -266,10 +266,25 @@ class DataCleanerUI(QMainWindow):
         )
         if file_path:
             try:
-                # Read the CSV file with custom logic for multi-level columns
-                self.df = pd.read_csv(file_path, delimiter=';', skiprows=1, header=[0, 1])
-                self.df = self.df.dropna(axis=1, how='all')
-                self.df.columns = [self._flatten_col(col) for col in self.df.columns]
+                # Read the file manually to handle inconsistent header rows
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+
+                # Skip the first two lines, then take the next two as headers
+                header_1 = lines[2].strip().split(';')
+                header_2 = lines[3].strip().split(';')
+                headers = []
+                for h1, h2 in zip(header_1, header_2):
+                    h1 = h1.strip()
+                    h2 = h2.strip()
+                    if h1 and h2 and h1 != h2:
+                        headers.append(f"{h1}({h2})")
+                    else:
+                        headers.append(h1 or h2)
+
+                # Now load the DataFrame with no header, skipping 4 lines
+                self.df = pd.read_csv(file_path, delimiter=';', skiprows=4, header=None)
+                self.df.columns = headers[:self.df.shape[1]]
                 self.df = self.df.apply(pd.to_numeric, errors='coerce')
                 if 'Timestamp' in self.df.columns:
                     self.df['Timestamp'] = self.df['Timestamp'] / 1000 / 60
