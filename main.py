@@ -62,6 +62,7 @@ class SharedDataManager:
         return self.cleaned_files
 
 
+# python
 class DataCleanerUI(QMainWindow):
     def __init__(self, shared_data_manager):
         super().__init__()
@@ -196,6 +197,11 @@ class DataCleanerUI(QMainWindow):
         save_button = QPushButton("Save Cleaned Data")
         save_button.clicked.connect(self.save_data)
         left_layout.addWidget(save_button)
+
+        # New: Save only selected columns button (bottom of cleaning tab)
+        save_selected_button = QPushButton("Save Selected Columns")
+        save_selected_button.clicked.connect(self.save_selected_columns)
+        left_layout.addWidget(save_selected_button)
 
         # Right panel setup
         right_panel = QWidget()
@@ -437,8 +443,74 @@ class DataCleanerUI(QMainWindow):
             # Add the saved file to shared data manager
             self.shared_data_manager.add_cleaned_file(file_path)
 
-    # Add the rest of the DataCleanerUI methods here...
-    # (update_plot, etc.)
+    def save_selected_columns(self):
+        """
+        Save a CSV containing only the currently selected columns (plus Timestamp if present).
+        Applies time-range filtering, exclude regions, and per-column offset/scale same as save_data.
+        """
+        if self.df is None:
+            return
+
+        selected_items = self.column_list.selectedItems()
+        if not selected_items:
+            return
+
+        selected_columns = [itm.text() for itm in selected_items]
+        # Ensure Timestamp is included for context if present
+        include_timestamp = 'Timestamp' in self.df.columns
+        cols_to_keep = selected_columns.copy()
+        if include_timestamp and 'Timestamp' not in cols_to_keep:
+            cols_to_keep.insert(0, 'Timestamp')
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Save Selected Columns", "", "CSV Files (*.csv);;All Files (*)"
+        )
+        if not file_path:
+            return
+
+        # Apply time range filter
+        df_filtered = self.df
+        if include_timestamp:
+            try:
+                time_range = self.time_slider.value()
+                mask = (self.df['Timestamp'] >= time_range[0]) & (self.df['Timestamp'] <= time_range[1])
+                df_filtered = self.df[mask].copy()
+            except Exception:
+                df_filtered = self.df.copy()
+        else:
+            df_filtered = self.df.copy()
+
+        # Apply exclude regions
+        if include_timestamp:
+            for region in self.exclude_regions:
+                mask = ~((df_filtered['Timestamp'] >= region[0]) & (df_filtered['Timestamp'] <= region[1]))
+                df_filtered = df_filtered[mask]
+
+        # Subset to the chosen columns (if they exist)
+        existing_cols = [c for c in cols_to_keep if c in df_filtered.columns]
+        if not existing_cols:
+            return
+        df_out = df_filtered[existing_cols].copy()
+
+        # Apply scaling and offset to selected columns (skip Timestamp)
+        for column in selected_columns:
+            if column in df_out.columns:
+                scale = self.column_scales.get(column, '1x')
+                scale_factor = {
+                    '÷10': 0.1,
+                    '÷100': 0.01,
+                    '÷1000': 0.001
+                }.get(scale, 1.0)
+                offset = self.column_offsets.get(column, 0.0)
+                df_out[column] = (df_out[column] + offset) * scale_factor
+                if scale != '1x':
+                    new_column = f"{column}_{scale[1:]}"
+                    df_out.rename(columns={column: new_column}, inplace=True)
+
+        # Save
+        df_out.to_csv(file_path, index=False)
+        self.shared_data_manager.add_cleaned_file(file_path)
+
 
 
 class PlotterUI(QMainWindow):
